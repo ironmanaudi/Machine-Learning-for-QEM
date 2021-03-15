@@ -10,6 +10,7 @@ from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise import QuantumError, ReadoutError
 from qiskit.providers.aer.noise import pauli_error
 from qiskit.providers.aer.noise import depolarizing_error
+import qiskit.providers.aer.noise as noise
 from qiskit.providers.aer.noise import thermal_relaxation_error
 from qiskit import QuantumCircuit, execute
 from qiskit import IBMQ, Aer
@@ -22,72 +23,59 @@ import numpy as np
 # display(plot_histogram(result_ideal.get_counts()))
 
 
-def generate_data(size, shots, num_qubits, depth, max_operands, noisy_simulator):
+def generate_data(size, shots, num_qubits, depth, max_operands, noise_model, basis_gates):
     circ = random_circuit(num_qubits, depth, max_operands, measure=True)
-    ideal_simulator = QasmSimulator()
-    data_ideal = torch.zeros(size, num_qubits, 2)
-    data_noisy = torch.zeros(size, num_qubits, 2)
+    data_ideal = torch.zeros((size, num_qubits, 2), dtype=torch.float64)
+    data_noisy = torch.zeros((size, num_qubits, 2), dtype=torch.float64)
 
     for i in range(size):
-        for k in range(int(shots/1024)):
-            result_ideal = execute(circ, ideal_simulator).result()
+        for _ in range(int(shots/1024)):
+            result_ideal = execute(circ, Aer.get_backend('qasm_simulator'),basis_gates=basis_gates).result()
             items_ideal = list(result_ideal.get_counts().items())
-            result_noisy = execute(circ, noisy_simulator).result()
+            result_noisy = execute(circ, Aer.get_backend('qasm_simulator'),basis_gates=basis_gates,noise_model=noise_model).result()
             items_noisy = list(result_noisy.get_counts().items())
 
-            for l in range(len(items)):
+            for k in range(len(items_ideal)):
                 for j in range(num_qubits):
-                    if items_ideal[l][0][j] == '0': data_ideal[i,j,0] += items_ideal[l][1]
-                    else: data_ideal[i,j,1] += items_ideal[l][1]
-                    if items_noisy[l][0][j] == '0': data_noisy[i,j,0] += items_noisy[l][1]
-                    else: data_noisy[i,j,1] += items_noisy[l][1]
+                    if items_ideal[k][0][j] == '0': data_ideal[i,j,0] += items_ideal[k][1]
+                    else: data_ideal[i,j,1] += items_ideal[k][1]
+            for l in range(len(items_ideal)):
+                for m in range(num_qubits):
+                    if items_noisy[l][0][m] == '0': data_noisy[i,m,0] += items_noisy[l][1]
+                    else: data_noisy[i,m,1] += items_noisy[l][1]
 
     data_ideal = data_ideal / shots
-    data_noisy = torch.log(data_noisy / shots)
+    data_noisy = torch.clamp(data_noisy/shots, 1e-15, 1)
+    data_noisy = torch.log(data_noisy)
 
     return (data_ideal, data_noisy)
 
 
-# Example error probabilities
-p_reset = 0.03
-p_meas = 0.1
-p_gate1 = 0.05
+def noisy_model(prob_one, prob_two):
+    # Depolarizing quantum errors
+    error_1 = noise.depolarizing_error(prob_one, 1)
+    error_2 = noise.depolarizing_error(prob_two, 2)
 
-# QuantumError objects
-error_reset = pauli_error([('X', p_reset), ('I', 1 - p_reset)])
-error_meas = pauli_error([('X',p_meas), ('I', 1 - p_meas)])
-error_gate1 = pauli_error([('X',p_gate1), ('I', 1 - p_gate1)])
-error_gate2 = error_gate1.tensor(error_gate1)
+    # Add errors to noise model
+    noise_model = noise.NoiseModel()
+    noise_model.add_all_qubit_quantum_error(error_1, ['u1', 'u2', 'u3'])
+    noise_model.add_all_qubit_quantum_error(error_2, ['cx'])
+    basis_gates = noise_model.basis_gates
 
-# Add errors to noise model
-noise_bit_flip = NoiseModel()
-noise_bit_flip.add_all_qubit_quantum_error(error_reset, "reset")
-noise_bit_flip.add_all_qubit_quantum_error(error_meas, "measure")
-noise_bit_flip.add_all_qubit_quantum_error(error_gate1, ["u1", "u2", "u3"])
-noise_bit_flip.add_all_qubit_quantum_error(error_gate2, ["cx"])
+    return (noise_model, basis_gates)
 
-# print(noise_bit_flip)
-
-# Run the noisy simulation
-noisy_simulator = QasmSimulator(noise_model=noise_bit_flip)
-job = execute(circ, noisy_simulator)
-result_bit_flip = job.result()
-counts_bit_flip = result_bit_flip.get_counts(0)
-# print('2',counts_bit_flip)
-
-# Plot noisy output
-# display(plot_histogram(counts_bit_flip))
 
 if __name__ == "__main__":
-    size = 1
+    size = 2
     shots = 2048
     num_qubits = 4
     depth = 3
     max_operands = 2
+    prob_one =0.01
+    prob_two = 0.01
     
-    
-    data = generate_data(size, shots, num_qubits, depth, max_operands, noisy_simulator)
-    data_ideal, data_noisy = data
+    noise_model, basis_gates = noisy_model(prob_one, prob_two)
+    data_ideal, data_noisy = generate_data(size, shots, num_qubits, depth, max_operands, noise_model, basis_gates)
     print('1', data_ideal)
     print('2', data_noisy)
 
