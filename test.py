@@ -1,10 +1,28 @@
 import torch
 import numpy as np
 
-a = torch.ones(5,4,1)
+rnn = torch.nn.GRUCell(10, 20)
+input = torch.randn((6, 3, 10))
+c= torch.Tensor([[0.4,0.3]])
 
-b = ['000','111']
-print(b[1][1])
-if b[0][2] == '1':
 
-    print(a/10)
+x = torch.randn(2, 3)
+y = torch.cat((x, x, x, x), 0)
+y = torch.reshape(y, (4,2,3))
+print(y)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

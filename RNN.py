@@ -17,19 +17,10 @@ import data_generation as dg
 torch.autograd.set_detect_anomaly(True)
 torch.set_printoptions(precision=None, threshold=5000, edgeitems=None, linewidth=None, profile=None)
 
-#define parameters
-num_qubits = 4
-depth = 3
-max_operands = 2
-input_size = 2
-hidden_size = 2
-single_error = 1e-3
-double_error = 1e-3
-measure = 1024
 
-#define hyperparameters
-lr = 3e-4
+#define parameters
 batch_num = 30
+batch_num_test = 10
 size = 128 #batch size
 shots = 8192 #sampling shots
 num_qubits = 4
@@ -38,30 +29,48 @@ max_operands = 2
 prob_one =0.05
 prob_two = 0.1
 
+#define hyperparameters
+lr = 3e-4
+input_size = 2
+hidden_size = 2
+
+
 #generate training and testing data
 train_ideal, train_noisy = data_load(batch_num, size, shots, num_qubits, depth, max_operands, prob_one, prob_two)
-test_ideal, test_noisy = data_load(batch_num=1, size, shots, num_qubits, depth, max_operands, prob_one, prob_two)
+test_ideal, test_noisy = data_load(batch_num_test, size, shots, num_qubits, depth, max_operands, prob_one, prob_two)
 
 
 class QEM(torch.nn.Module):
     def __init__(self, num_qubits):
         super(QEM, self).__init__()
         self.num_qubits = num_qubits
-        self.output = []
-        self.rnn = torch.nn.GRUCell(num_qubits, num_qubits)
-    
+        self.rnn = torch.nn.GRUCell(2, 2).double()
+        self.W = torch.nn.Parameter(Variable(torch.ones((2, 2)).double()))
+        self.alpha = torch.nn.Parameter(Variable(torch.Tensor([[0, 0]]).double()))
+
     def forward(self, data):
-        hx = torch.randn(BATCH_SIZE, self.num_qubits)
-        
+        #reshape data
+        data = torch.transpose(data, 0, 1)
+        hx = torch.randn(size, 2)
+        flag = 1
+
         for i in range(num_qubits):
             hx = self.rnn(data[i], hx)
             
             #transform hx to y
+            y = torch.mm(self.W, hx) + self.alpha
+            y = torch.nn.functional.softmax(input=y, dim=1, dtype=torch.float64)
+            y = torch.clamp(y, 1e-15, 1)
             y = torch.log(hx)
             
-            self.output.append(y)
+            if flag:output = y
+            else:torch.cat((output, y), 0)
+            flag = 0
         
-        return self.output
+        output = torch.reshape(output, (self.num_qubits, size, 2))
+        output = torch.transpose(output, 0, 1)
+
+        return output
 
 device = torch.device('cpu')
 mitigator = QEM().to(device)
@@ -72,10 +81,11 @@ criterion = torch.nn.KLDivLoss()
 def train(epoch):
     mitigator.train()
     
-    for datas in train_loader:
-        datas = datas.to(device)
+    for data_ideal, data_noisy in zip(train_ideal, train_noisy):
+        data_ideal = data_ideal.to(device)
+        data_noisy = data_noisy.to(device)
         optimizer.zero_grad()
-        loss = criterion(mitigator(datas), datas) #input change
+        loss = criterion(mitigator(data_noisy), data_ideal) #input change
         loss.backward(retain_graph=True)
         optimizer.step()
         
@@ -87,11 +97,12 @@ def train(epoch):
 def test(model_a):
     model_a.eval()
     loss = 0
-    for datas in test_loader:
-        datas = datas.to(device)
-        pred = model_a(datas)
+    for data_ideal, data_noisy in zip(test_ideal, test_noisy):
+        data_ideal = data_ideal.to(device)
+        data_noisy = data_noisy.to(device)
+        pred = model_a(data_noisy)
         
-        loss += criterion(pred, datas).item()
+        loss += criterion(pred, data_ideal).item()
         
     return loss
 
