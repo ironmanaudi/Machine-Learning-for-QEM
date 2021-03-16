@@ -39,13 +39,14 @@ def generate_data(size, shots, num_qubits, depth, max_operands, noise_model, bas
                 for j in range(num_qubits):
                     if items_ideal[k][0][j] == '0': data_ideal[i,j,0] += items_ideal[k][1]
                     else: data_ideal[i,j,1] += items_ideal[k][1]
-            for l in range(len(items_ideal)):
+            for l in range(len(items_noisy)):
                 for m in range(num_qubits):
                     if items_noisy[l][0][m] == '0': data_noisy[i,m,0] += items_noisy[l][1]
                     else: data_noisy[i,m,1] += items_noisy[l][1]
 
     data_ideal = data_ideal / shots
-    data_noisy = torch.clamp(data_noisy/shots, 1e-15, 1)
+    data_noisy = data_noisy/shots
+    data_noisy = torch.clamp(data_noisy, 1e-15, 1)
     data_noisy = torch.log(data_noisy)
 
     return (data_ideal, data_noisy)

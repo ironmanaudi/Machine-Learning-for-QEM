@@ -29,11 +29,19 @@ measure = 1024
 
 #define hyperparameters
 lr = 3e-4
-BATCH_SIZE = 128
+batch_num = 30
+size = 128 #batch size
+shots = 8192 #sampling shots
+num_qubits = 4
+depth = 3
+max_operands = 2
+prob_one =0.05
+prob_two = 0.1
 
-#data generation
+#generate training and testing data
+train_ideal, train_noisy = data_load(batch_num, size, shots, num_qubits, depth, max_operands, prob_one, prob_two)
+test_ideal, test_noisy = data_load(batch_num=1, size, shots, num_qubits, depth, max_operands, prob_one, prob_two)
 
-    
 
 class QEM(torch.nn.Module):
     def __init__(self, num_qubits):
