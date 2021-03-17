@@ -46,8 +46,8 @@ def generate_data(size, shots, num_qubits, depth, max_operands, noise_model, bas
 
     data_ideal = data_ideal / shots
     data_noisy = data_noisy/shots
-    data_noisy = torch.clamp(data_noisy, 1e-15, 1)
-    data_noisy = torch.log(data_noisy)
+    #data_noisy = torch.clamp(data_noisy, 1e-15, 1)
+    #data_noisy = torch.log(data_noisy)
 
     return (data_ideal, data_noisy)
 

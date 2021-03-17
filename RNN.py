@@ -12,7 +12,7 @@ from torch import Tensor
 from torch.nn import Parameter as Param
 import inspect
 from torch.nn import Parameter
-import data_generation as dg
+import data_loader as dl
 
 torch.autograd.set_detect_anomaly(True)
 torch.set_printoptions(precision=None, threshold=5000, edgeitems=None, linewidth=None, profile=None)
@@ -20,13 +20,13 @@ torch.set_printoptions(precision=None, threshold=5000, edgeitems=None, linewidth
 
 #define parameters
 batch_num = 30
-batch_num_test = 10
+batch_num_test = 2
 size = 128 #batch size
 shots = 8192 #sampling shots
 num_qubits = 4
-depth = 3
+depth = 5
 max_operands = 2
-prob_one =0.05
+prob_one =0.04
 prob_two = 0.1
 
 #define hyperparameters
@@ -36,8 +36,8 @@ hidden_size = 2
 
 
 #generate training and testing data
-train_ideal, train_noisy = data_load(batch_num, size, shots, num_qubits, depth, max_operands, prob_one, prob_two)
-test_ideal, test_noisy = data_load(batch_num_test, size, shots, num_qubits, depth, max_operands, prob_one, prob_two)
+train_ideal, train_noisy = dl.data_load(batch_num, size, shots, num_qubits, depth, max_operands, prob_one, prob_two)
+test_ideal, test_noisy = dl.data_load(batch_num_test, size, shots, num_qubits, depth, max_operands, prob_one, prob_two)
 
 
 class QEM(torch.nn.Module):
@@ -51,31 +51,33 @@ class QEM(torch.nn.Module):
     def forward(self, data):
         #reshape data
         data = torch.transpose(data, 0, 1)
-        hx = torch.randn(size, 2)
+        hx = torch.randn(size, 2).double()
         flag = 1
 
         for i in range(num_qubits):
             hx = self.rnn(data[i], hx)
             
             #transform hx to y
-            y = torch.mm(self.W, hx) + self.alpha
-            y = torch.nn.functional.softmax(input=y, dim=1, dtype=torch.float64)
-            y = torch.clamp(y, 1e-15, 1)
-            y = torch.log(hx)
-            
+            y = torch.mm(hx, self.W) + self.alpha
+            y = torch.nn.functional.log_softmax(input=y, dim=1, dtype=torch.float64)
+            #y = torch.clamp(y, 1e-14, 1)
+
+            #y = torch.log(hx)
+            #print('2',y)
+
             if flag:output = y
-            else:torch.cat((output, y), 0)
+            else:output = torch.cat((output, y), 0)
             flag = 0
-        
+
         output = torch.reshape(output, (self.num_qubits, size, 2))
         output = torch.transpose(output, 0, 1)
 
         return output
 
 device = torch.device('cpu')
-mitigator = QEM().to(device)
+mitigator = QEM(num_qubits).to(device)
 optimizer = torch.optim.Adam(mitigator.parameters(), lr, weight_decay=0)
-criterion = torch.nn.KLDivLoss()
+criterion = torch.nn.KLDivLoss(reduction='sum').double()
 
 
 def train(epoch):
@@ -85,7 +87,9 @@ def train(epoch):
         data_ideal = data_ideal.to(device)
         data_noisy = data_noisy.to(device)
         optimizer.zero_grad()
-        loss = criterion(mitigator(data_noisy), data_ideal) #input change
+        data_ideal = torch.clamp(data_ideal, 1e-14, 1)
+        output = mitigator(data_noisy)
+        loss = criterion(output, data_ideal) #input change
         loss.backward(retain_graph=True)
         optimizer.step()
         
@@ -101,12 +105,31 @@ def test(model_a):
         data_ideal = data_ideal.to(device)
         data_noisy = data_noisy.to(device)
         pred = model_a(data_noisy)
-        
+        data_ideal = torch.clamp(data_ideal, 1e-14, 1)
+
         loss += criterion(pred, data_ideal).item()
         
-    return loss
+    return loss/ (size*batch_num_test)
 
     
 if __name__ == '__main__':
     training = 1
+    load = 1 - training
+
+    if training:
+        f = open('./mitigator_training_loss.txt','a')
+        N = 401
+        for epoch in range(1, N):
+            train(epoch)
+            test_acc = test(mitigator)
+            f.write('Epoch: {:03d}, Test Acc: {:.10f}'.format(epoch, test_acc))
+            print('Epoch: {:03d}, Test Acc: {:.10f}'.format(epoch, test_acc))
+        f.close()
+    
+    if load:
+        model_a = QEM(num_qubits).to(device)
+        model_a.load_state_dict(torch.load('./model/decoder_parameters_epoch767.pkl'))
+        loss = test(decoder_b, training)
+        print(loss)
+
 
