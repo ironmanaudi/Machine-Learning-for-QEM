@@ -124,7 +124,7 @@ if __name__ == '__main__':
         N = 401
         for epoch in range(1, N):
             train(epoch)
-            test_acc = test(mitigator)
+            test_acc = test(mitigator, training)
             f.write('Epoch: {:03d}, Test Acc: {:.10f}'.format(epoch, test_acc))
             print('Epoch: {:03d}, Test Acc: {:.10f}'.format(epoch, test_acc))
         f.close()
