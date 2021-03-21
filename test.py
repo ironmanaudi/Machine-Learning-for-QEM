@@ -26,8 +26,7 @@ kl_sum = F.kl_div(logp_x, p_y, reduction='sum')
 kl_mean = F.kl_div(logp_x, p_y, reduction='mean')
    
 a = torch.ones(5)*0.5
-print(torch.log(a))
-
+print(6.5*1e-4)
 
 
 

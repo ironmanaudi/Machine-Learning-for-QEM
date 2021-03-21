@@ -24,21 +24,19 @@ batch_num_test = 2
 size = 128 #batch size
 shots = 8192 #sampling shots
 num_qubits = 4
-depth = 5
+depth = 10
 max_operands = 2
-prob_one =0.04
-prob_two = 0.1
+prob_one = 6.5*1e-4
+prob_two = 1.65*1e-2
 
 #define hyperparameters
 lr = 3e-4
 input_size = 2
 hidden_size = 2
 
-
 #generate training and testing data
 train_ideal, train_noisy = dl.data_load(batch_num, size, shots, num_qubits, depth, max_operands, prob_one, prob_two)
 test_ideal, test_noisy = dl.data_load(batch_num_test, size, shots, num_qubits, depth, max_operands, prob_one, prob_two)
-
 
 class QEM(torch.nn.Module):
     def __init__(self, num_qubits):
@@ -79,7 +77,6 @@ mitigator = QEM(num_qubits).to(device)
 optimizer = torch.optim.Adam(mitigator.parameters(), lr, weight_decay=0)
 criterion = torch.nn.KLDivLoss(reduction='sum').double()
 
-
 def train(epoch):
     mitigator.train()
     
@@ -98,9 +95,11 @@ def train(epoch):
         
     return loss
 
-def test(model_a):
+def test(model_a, training):
     model_a.eval()
     loss = 0
+    loss2 = 0 
+
     for data_ideal, data_noisy in zip(test_ideal, test_noisy):
         data_ideal = data_ideal.to(device)
         data_noisy = data_noisy.to(device)
@@ -108,13 +107,17 @@ def test(model_a):
         data_ideal = torch.clamp(data_ideal, 1e-14, 1)
 
         loss += criterion(pred, data_ideal).item()
-        
-    return loss/ (size*batch_num_test)
+        if training:return loss/ (size*batch_num_test)
+        else:
+            data_noisy = torch.clamp(data_noisy, 1e-14, 1)
+            data_noisy = torch.log(data_noisy)
+            loss2 += criterion(data_noisy, data_ideal).item()
+
+            return (loss/(size*batch_num_test), loss2/(size*batch_num_test))
 
     
 if __name__ == '__main__':
     training = 1
-    load = 1 - training
 
     if training:
         f = open('./mitigator_training_loss.txt','a')
@@ -126,10 +129,10 @@ if __name__ == '__main__':
             print('Epoch: {:03d}, Test Acc: {:.10f}'.format(epoch, test_acc))
         f.close()
     
-    if load:
+    else:
         model_a = QEM(num_qubits).to(device)
-        model_a.load_state_dict(torch.load('./model/decoder_parameters_epoch767.pkl'))
-        loss = test(decoder_b, training)
-        print(loss)
+        model_a.load_state_dict(torch.load('./trained/model_parameters_epoch210.pkl'))
+        loss, loss2 = test(model_a, training)
+        print(loss, loss2)
 
 
