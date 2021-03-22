@@ -35,12 +35,12 @@ input_size = 2
 hidden_size = 2
 
 #load training and testing data
-train_ideal = torch.load("./train_set/in8l10.pth")
-train_noisy = torch.load("./train_set/nn8l10.pth")
-test_ideal = torch.load("./test_set/in8l10.pth")
-test_noisy = torch.load("./test_set/nn8l10.pth")
+train_ideal = torch.load("./train_set/in{num_qubits}l{depth}.pth".format(num_qubits, depth))
+train_noisy = torch.load("./train_set/nn{num_qubits}l{depth}.pth".format(num_qubits, depth))
+test_ideal = torch.load("./test_set/in{num_qubits}l{depth}.pth".format(num_qubits, depth))
+test_noisy = torch.load("./test_set/nn{num_qubits}l{depth}.pth".format(num_qubits, depth))
 
-
+'Epoch: {:03d}, Test Acc: {:.10f}'.format(epoch, test_acc)
 
 class QEM(torch.nn.Module):
     def __init__(self, num_qubits):
