@@ -125,7 +125,7 @@ if __name__ == '__main__':
 
     if training:
         f = open('./mitigator_training_loss.txt','a')
-        N = 1201
+        N = 4801
         for epoch in range(1, N):
             train(epoch)
             test_acc = test(mitigator, training)
