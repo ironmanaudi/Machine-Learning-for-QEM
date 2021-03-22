@@ -24,8 +24,8 @@ if __name__ == "__main__":
     batch_num_test = 5
     size = 128
     shots = 8192
-    num_qubits = 7
-    depth = 14
+    num_qubits = 8
+    depth = 12
     max_operands = 2
     prob_one = 6.5*1e-4
     prob_two = 1.65*1e-2
@@ -36,8 +36,8 @@ if __name__ == "__main__":
     
     #torch.save(train_ideal, "./train_set/in4l10.pth")
     #torch.save(train_noisy, "./train_set/nn5l10.pth")
-    torch.save(test_ideal, "./test_set/in7l14.pth")
-    torch.save(test_noisy, "./test_set/nn7l14.pth")
+    torch.save(test_ideal, "./test_set/in8l12.pth")
+    torch.save(test_noisy, "./test_set/nn8l12.pth")
 
     print('done')
 

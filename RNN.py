@@ -23,7 +23,7 @@ batch_num = 30
 batch_num_test = 5
 size = 128 #batch size
 shots = 8192 #sampling shots
-num_qubits = 4
+num_qubits = 8
 depth = 10
 max_operands = 2
 prob_one = 6.5*1e-4
@@ -35,10 +35,10 @@ input_size = 2
 hidden_size = 2
 
 #load training and testing data
-train_ideal = torch.load("./train_set/train_ideal.pth")
-train_noisy = torch.load("./train_set/train_noisy.pth")
-test_ideal = torch.load("./test_set/test_ideal.pth")
-test_noisy = torch.load("./test_set/test_noisy.pth")
+train_ideal = torch.load("./train_set/in8l10.pth")
+train_noisy = torch.load("./train_set/nn8l10.pth")
+test_ideal = torch.load("./test_set/in8l10.pth")
+test_noisy = torch.load("./test_set/nn8l10.pth")
 
 
 
@@ -94,8 +94,8 @@ def train(epoch):
         loss.backward(retain_graph=True)
         optimizer.step()
         
-    if epoch % 1 == 0:
-        torch.save(mitigator.state_dict(), './model/model_parameters_epoch%d.pkl' % (epoch))
+    if epoch % 10 == 0:
+        torch.save(mitigator.state_dict(), './model8/model_parameters_epoch%d.pkl' % (epoch))
         
     return loss
 
@@ -124,18 +124,18 @@ if __name__ == '__main__':
     training = 1
 
     if training:
-        f = open('./mitigator_training_loss.txt','a')
+        #f = open('./mitigator_training_loss.txt','a')
         N = 4801
         for epoch in range(1, N):
             train(epoch)
             test_acc = test(mitigator, training)
-            f.write('Epoch: {:03d}, Test Acc: {:.10f}'.format(epoch, test_acc))
+            #f.write('Epoch: {:03d}, Test Acc: {:.10f}'.format(epoch, test_acc))
             print('Epoch: {:03d}, Test Acc: {:.10f}'.format(epoch, test_acc))
         f.close()
     
     else:
         model_a = QEM(num_qubits).to(device)
-        model_a.load_state_dict(torch.load('./trained/model_parameters_epoch400.pkl'))
+        model_a.load_state_dict(torch.load('./trained/model_parameters_epoch4800.pkl'))
         loss, loss2 = test(model_a, training)
         print(loss, loss2)
 
