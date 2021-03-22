@@ -20,7 +20,7 @@ torch.set_printoptions(precision=None, threshold=5000, edgeitems=None, linewidth
 
 #define parameters
 batch_num = 30
-batch_num_test = 2
+batch_num_test = 5
 size = 128 #batch size
 shots = 8192 #sampling shots
 num_qubits = 4
@@ -34,9 +34,13 @@ lr = 3e-4
 input_size = 2
 hidden_size = 2
 
-#generate training and testing data
-train_ideal, train_noisy = dl.data_load(batch_num, size, shots, num_qubits, depth, max_operands, prob_one, prob_two)
-test_ideal, test_noisy = dl.data_load(batch_num_test, size, shots, num_qubits, depth, max_operands, prob_one, prob_two)
+#load training and testing data
+train_ideal = torch.load("./train_set/train_ideal.pth")
+train_noisy = torch.load("./train_set/train_noisy.pth")
+test_ideal = torch.load("./test_set/test_ideal.pth")
+test_noisy = torch.load("./test_set/test_noisy.pth")
+
+
 
 class QEM(torch.nn.Module):
     def __init__(self, num_qubits):
@@ -117,11 +121,11 @@ def test(model_a, training):
 
     
 if __name__ == '__main__':
-    training = 1
+    training = 0
 
     if training:
         f = open('./mitigator_training_loss.txt','a')
-        N = 401
+        N = 1201
         for epoch in range(1, N):
             train(epoch)
             test_acc = test(mitigator, training)
@@ -131,7 +135,7 @@ if __name__ == '__main__':
     
     else:
         model_a = QEM(num_qubits).to(device)
-        model_a.load_state_dict(torch.load('./trained/model_parameters_epoch210.pkl'))
+        model_a.load_state_dict(torch.load('./trained/model_parameters_epoch400.pkl'))
         loss, loss2 = test(model_a, training)
         print(loss, loss2)
 

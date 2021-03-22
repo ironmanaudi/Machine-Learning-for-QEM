@@ -20,18 +20,25 @@ def data_load(batch_num, size, shots, num_qubits, depth, max_operands, prob_one,
         return (loader_ideal, loader_noisy)
 
 if __name__ == "__main__":
-    batch_num = 2
-    size = 2
-    shots = 2048
+    batch_num = 30
+    batch_num_test = 5
+    size = 128
+    shots = 8192
     num_qubits = 4
-    depth = 3
+    depth = 10
     max_operands = 2
-    prob_one =0.01
-    prob_two = 0.01
+    prob_one = 6.5*1e-4
+    prob_two = 1.65*1e-2
     
-    loader_ideal, loader_noisy = data_load(batch_num, size, shots, num_qubits, depth, max_operands, prob_one, prob_two)
+    #generate training and testing data
+    train_ideal, train_noisy = data_load(batch_num, size, shots, num_qubits, depth, max_operands, prob_one, prob_two)
+    test_ideal, test_noisy = data_load(batch_num_test, size, shots, num_qubits, depth, max_operands, prob_one, prob_two)
     
-    print('1', loader_ideal)
-    print('2', loader_noisy)
+    torch.save(train_ideal, "./train_set/train_ideal.pth")
+    torch.save(train_noisy, "./train_set/train_noisy.pth")
+    torch.save(test_ideal, "./test_set/test_ideal.pth")
+    torch.save(test_noisy, "./test_set/test_noisy.pth")
+
+    print('done')
 
 
