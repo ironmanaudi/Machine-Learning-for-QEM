@@ -121,7 +121,7 @@ def test(model_a, training):
 
     
 if __name__ == '__main__':
-    training = 0
+    training = 1
 
     if training:
         f = open('./mitigator_training_loss.txt','a')
