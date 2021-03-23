@@ -20,7 +20,7 @@ torch.set_printoptions(precision=None, threshold=5000, edgeitems=None, linewidth
 
 #define parameters
 batch_num = 30
-batch_num_test = 5
+batch_num_test = 10
 size = 128 #batch size
 shots = 8192 #sampling shots
 num_qubits = 8
@@ -35,12 +35,14 @@ input_size = 2
 hidden_size = 2
 
 #load training and testing data
-train_ideal = torch.load("./train_set/in{num_qubits}l{depth}.pth".format(num_qubits, depth))
-train_noisy = torch.load("./train_set/nn{num_qubits}l{depth}.pth".format(num_qubits, depth))
-test_ideal = torch.load("./test_set/in{num_qubits}l{depth}.pth".format(num_qubits, depth))
-test_noisy = torch.load("./test_set/nn{num_qubits}l{depth}.pth".format(num_qubits, depth))
+#train_ideal = torch.load("./train_set/in{n}l{d}.pth".format(n=num_qubits, d=depth))
+#train_noisy = torch.load("./train_set/nn{n}l{d}.pth".format(n=num_qubits, d=depth))
+train_ideal = torch.load("./train_set/in5l10.pth")
+train_noisy = torch.load("./train_set/nn5l10.pth")
 
-'Epoch: {:03d}, Test Acc: {:.10f}'.format(epoch, test_acc)
+test_ideal = torch.load("./test_set/in{n}l{d}.pth".format(n=num_qubits, d=depth))
+test_noisy = torch.load("./test_set/nn{n}l{d}.pth".format(n=num_qubits, d=depth))
+
 
 class QEM(torch.nn.Module):
     def __init__(self, num_qubits):
@@ -121,7 +123,7 @@ def test(model_a, training):
 
     
 if __name__ == '__main__':
-    training = 1
+    training = 0
 
     if training:
         #f = open('./mitigator_training_loss.txt','a')
@@ -131,11 +133,11 @@ if __name__ == '__main__':
             test_acc = test(mitigator, training)
             #f.write('Epoch: {:03d}, Test Acc: {:.10f}'.format(epoch, test_acc))
             print('Epoch: {:03d}, Test Acc: {:.10f}'.format(epoch, test_acc))
-        f.close()
+        #f.close()
     
     else:
         model_a = QEM(num_qubits).to(device)
-        model_a.load_state_dict(torch.load('./trained/model_parameters_epoch4800.pkl'))
+        model_a.load_state_dict(torch.load('./trained/model_parameters_8.pkl'))
         loss, loss2 = test(model_a, training)
         print(loss, loss2)
 
