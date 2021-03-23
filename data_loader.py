@@ -24,8 +24,8 @@ if __name__ == "__main__":
     batch_num_test = 10
     size = 128
     shots = 8192
-    num_qubits = 7
-    depth = 10
+    num_qubits = 8
+    depth = 12
     max_operands = 2
     prob_one = 6.5*1e-4
     prob_two = 1.65*1e-2
