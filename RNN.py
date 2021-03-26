@@ -23,8 +23,8 @@ batch_num = 30
 batch_num_test = 10
 size = 128 #batch size
 shots = 8192 #sampling shots
-num_qubits = 8
-depth = 12
+num_qubits = 7
+depth = 10
 max_operands = 2
 prob_one = 6.5*1e-4
 prob_two = 1.65*1e-2
@@ -97,7 +97,7 @@ def train(epoch):
         optimizer.step()
         
     if epoch % 10 == 0:
-        torch.save(mitigator.state_dict(), './model8/model_parameters_epoch%d.pkl' % (epoch))
+        torch.save(mitigator.state_dict(), './model7/model_parameters_epoch%d.pkl' % (epoch))
         
     return loss
 
@@ -137,7 +137,9 @@ if __name__ == '__main__':
     
     else:
         model_a = QEM(num_qubits).to(device)
-        model_a.load_state_dict(torch.load('./trained/model_parameters_8.pkl'))
+        #model_a.load_state_dict(torch.load('./trained/model_parameters_7.pkl'))
+        model_a.load_state_dict(torch.load('./model7/model_parameters_epoch300.pkl'))
+
         loss, loss2 = test(model_a, training)
         print(loss, loss2)
 

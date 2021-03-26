@@ -24,18 +24,18 @@ if __name__ == "__main__":
     batch_num_test = 10
     size = 128
     shots = 8192
-    num_qubits = 8
-    depth = 12
+    num_qubits = 7
+    depth = 10
     max_operands = 2
     prob_one = 6.5*1e-4
     prob_two = 1.65*1e-2
     
     #generate training and testing data
-    #train_ideal, train_noisy = data_load(batch_num, size, shots, num_qubits, depth, max_operands, prob_one, prob_two)
+    train_ideal, train_noisy = data_load(batch_num, size, shots, num_qubits, depth, max_operands, prob_one, prob_two)
     test_ideal, test_noisy = data_load(batch_num_test, size, shots, num_qubits, depth, max_operands, prob_one, prob_two)
     
-    #torch.save(train_ideal, "./train_set/in4l10.pth")
-    #torch.save(train_noisy, "./train_set/nn5l10.pth")
+    torch.save(train_ideal, "./train_set/in{n}l{d}.pth".format(n=num_qubits, d=depth))
+    torch.save(train_noisy, "./train_set/nn{n}l{d}.pth".format(n=num_qubits, d=depth))
     torch.save(test_ideal, "./test_set/in{n}l{d}.pth".format(n=num_qubits, d=depth))
     torch.save(test_noisy, "./test_set/nn{n}l{d}.pth".format(n=num_qubits, d=depth))
 

@@ -23,10 +23,10 @@ plt.plot(d, l7i, color='orange', label='n=7')
 plt.plot(d, l8i, color='grey', label='n=8')
 
 plt.plot(d, l4n, color='green', label='n=4',ls='--')
-plt.plot(d, l4n, color='r', label='n=5',ls='--')
-plt.plot(d, l4n, color='blue', label='n=6',ls='--')
-plt.plot(d, l4n, color='orange', label='n=7',ls='--')
-plt.plot(d, l4n, color='grey', label='n=8',ls='--')
+plt.plot(d, l5n, color='r', label='n=5',ls='--')
+plt.plot(d, l6n, color='blue', label='n=6',ls='--')
+plt.plot(d, l7n, color='orange', label='n=7',ls='--')
+plt.plot(d, l8n, color='grey', label='n=8',ls='--')
 
 plt.legend() # 显示图例
 
