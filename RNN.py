@@ -138,7 +138,7 @@ if __name__ == '__main__':
     else:
         model_a = QEM(num_qubits).to(device)
         #model_a.load_state_dict(torch.load('./trained/model_parameters_7.pkl'))
-        model_a.load_state_dict(torch.load('./model7/model_parameters_epoch300.pkl'))
+        model_a.load_state_dict(torch.load('./model7/model_parameters_epoch4800.pkl'))
 
         loss, loss2 = test(model_a, training)
         print(loss, loss2)

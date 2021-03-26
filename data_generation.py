@@ -24,7 +24,7 @@ import numpy as np
 
 
 def generate_data(size, shots, num_qubits, depth, max_operands, noise_model, basis_gates):
-    circ = random_circuit(num_qubits, depth, max_operands, measure=True, seed=16)
+    circ = random_circuit(num_qubits, depth, max_operands, measure=True, seed=3)
     data_ideal = torch.zeros((size, num_qubits, 2), dtype=torch.float64)
     data_noisy = torch.zeros((size, num_qubits, 2), dtype=torch.float64)
 
