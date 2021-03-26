@@ -23,7 +23,7 @@ batch_num = 30
 batch_num_test = 10
 size = 128 #batch size
 shots = 8192 #sampling shots
-num_qubits = 7
+num_qubits = 6
 depth = 10
 max_operands = 2
 prob_one = 6.5*1e-4
@@ -137,8 +137,8 @@ if __name__ == '__main__':
     
     else:
         model_a = QEM(num_qubits).to(device)
-        #model_a.load_state_dict(torch.load('./trained/model_parameters_7.pkl'))
-        model_a.load_state_dict(torch.load('./model7/model_parameters_epoch4800.pkl'))
+        model_a.load_state_dict(torch.load('./trained/model_parameters_7.pkl'))
+        #model_a.load_state_dict(torch.load('./model7/model_parameters_epoch4800.pkl'))
 
         loss, loss2 = test(model_a, training)
         print(loss, loss2)
