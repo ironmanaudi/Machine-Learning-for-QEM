@@ -21,7 +21,7 @@ torch.set_printoptions(precision=None, threshold=5000, edgeitems=None, linewidth
 #define parameters
 batch_num = 30
 batch_num_test = 10
-size = 128 #batch size
+size = 75 #batch size
 shots = 8192 #sampling shots
 num_qubits = 6
 depth = 10

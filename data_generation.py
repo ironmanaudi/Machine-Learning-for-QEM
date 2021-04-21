@@ -18,34 +18,22 @@ from qiskit.visualization import plot_histogram
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.circuit.random import random_circuit
 import torch
-import numpy as np
 from qiskit.quantum_info import random_clifford
 # display(plot_histogram(result_ideal.get_counts()))
 
 
-def generate_data(size, shots, num_qubits, depth, max_operands, noise_model, basis_gates, clifford=0):
-    if clifford:
-        qr = QuantumRegister(num_qubits, 'q')
-        cr = ClassicalRegister(num_qubits, 'c')
-        circ = QuantumCircuit(qr,cr)
-        cliff = random_clifford(num_qubits)
-        cliff = cliff.to_circuit()
-        circ = circ.compose(cliff,inplace=False)
-        circ.measure(qr[:],cr[:])
-    else:circ = random_circuit(num_qubits, depth, max_operands, measure=True)
+def generate_data(size, shots, num_qubits, depth, max_operands, noise_model, basis_gates):
     data_ideal = torch.zeros((size, num_qubits, 2), dtype=torch.float64)
     data_noisy = torch.zeros((size, num_qubits, 2), dtype=torch.float64)
-    
-    backend_1 = Aer.get_backend('qasm_simulator')
-    IBMQ.save_account('83a95fc7efba05f250ed50ff6bdf1638541ebd4f9e46396f26c8dc12f15b2331ea24d9db4f59c30b6e397c2268e40ddc1dae4772091baa73d7e99c91e8d8c56b')
-    provider = IBMQ.load_account()
-    provider = IBMQ.get_provider(hub='ibm-q', group='open', project='main')
-    backend_2 = provider.get_backend('ibmq_16_melbourne')
+
+    backend = Aer.get_backend('qasm_simulator')
 
     for i in range(size):
-        result_ideal = execute(circ, backend_1 ,basis_gates=basis_gates, shots=shots).result()
+        circ = random_circuit(num_qubits, depth, max_operands, measure=True)
+
+        result_ideal = execute(circ, backend ,basis_gates=basis_gates, shots=shots).result()
         items_ideal = list(result_ideal.get_counts().items())
-        result_noisy = execute(circ,backend_2,basis_gates=basis_gates,noise_model=noise_model,shots=shots).result()
+        result_noisy = execute(circ,backend,basis_gates=basis_gates,noise_model=noise_model,shots=shots).result()
         items_noisy = list(result_noisy.get_counts().items())
 
         for k in range(len(items_ideal)):
@@ -57,10 +45,8 @@ def generate_data(size, shots, num_qubits, depth, max_operands, noise_model, bas
                 if items_noisy[l][0][m] == '0': data_noisy[i,m,0] += items_noisy[l][1]
                 else: data_noisy[i,m,1] += items_noisy[l][1]
 
-    data_ideal = data_ideal / shots
+    data_ideal = data_ideal/shots
     data_noisy = data_noisy/shots
-    #data_noisy = torch.clamp(data_noisy, 1e-15, 1)
-    #data_noisy = torch.log(data_noisy)
 
     return (data_ideal, data_noisy)
 
