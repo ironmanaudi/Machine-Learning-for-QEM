@@ -13,10 +13,14 @@ def data_load(batch_num, size, shots, num_qubits, depth, max_operands, prob_one,
     for group in range(batch_num):
         if clifford:
             if device:cg.generate_data(size, shots, num_qubits, cbasis_gates, device, group, batch_num, train)
-            else:data_ideal, data_noisy = cg.generate_data(size, shots, num_qubits, cbasis_gates, device, group, batch_num, train)
-        else:data_ideal, data_noisy = dg.generate_data(size, shots, num_qubits, depth, max_operands, noise_model, basis_gates)
-        loader_ideal.append(data_ideal)
-        loader_noisy.append(data_noisy)
+            else:
+                data_ideal, data_noisy = cg.generate_data(size, shots, num_qubits, cbasis_gates, device, group, batch_num, train)
+                loader_ideal.append(data_ideal)
+                loader_noisy.append(data_noisy)
+        else:
+            data_ideal, data_noisy = dg.generate_data(size, shots, num_qubits, depth, max_operands, noise_model, basis_gates)
+            loader_ideal.append(data_ideal)
+            loader_noisy.append(data_noisy)
 
     return (loader_ideal, loader_noisy)
 

@@ -44,7 +44,7 @@ def generate_data(size, shots, num_qubits, basis_gates, device, group=-1, limit=
             circ = circ.compose(cliff,inplace=False)
             circ.measure(qr[:],cr[:])
             circ_set.append(circ)
-            execute(circ,backend_2,basis_gates=basis_gates,shots=shots)
+        execute(circ_set,backend_2,basis_gates=basis_gates,shots=shots)
         output = open('./circs/circ{n}tr{tr}bn{bn}.pkl'.format(n=num_qubits, tr=train, bn=group), 'wb')
         pickle.dump(circ_set, output)
         output.close()
