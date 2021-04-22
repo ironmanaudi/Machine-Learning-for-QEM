@@ -26,8 +26,8 @@ def data_load(batch_num, size, shots, num_qubits, depth, max_operands, prob_one,
 
 
 if __name__ == "__main__":
-    batch_num = 50
-    batch_num_test = 10
+    batch_num = 5
+    batch_num_test = 5
     size = 75
     shots = 8192
     num_qubits = 5
@@ -36,7 +36,7 @@ if __name__ == "__main__":
     prob_one = 6.5*1e-4
     prob_two = 1.65*1e-2
     clifford = 1
-    if clifford==1:device = 1
+    if clifford==1:device = 0
     else:device = 0
     train = 1
     

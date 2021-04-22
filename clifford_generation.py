@@ -31,7 +31,6 @@ def generate_data(size, shots, num_qubits, basis_gates, device, group=-1, limit=
     backend_1 = Aer.get_backend('qasm_simulator')
     #IBMQ.save_account('83a95fc7efba05f250ed50ff6bdf1638541ebd4f9e46396f26c8dc12f15b2331ea24d9db4f59c30b6e397c2268e40ddc1dae4772091baa73d7e99c91e8d8c56b')
     provider = IBMQ.load_account()
-    provider = IBMQ.get_provider(hub='ibm-q', group='open', project='main')
     backend_2 = provider.get_backend('ibmq_16_melbourne')
     
     if device:
@@ -53,12 +52,13 @@ def generate_data(size, shots, num_qubits, basis_gates, device, group=-1, limit=
         circ_set = pickle.load(pkl_file)
         pkl_file.close()
         
-        data = (list(reversed(backend_2.jobs(limit)))[group]).result()
-        
-        for circ, result_noisy in zip(circ_set, data):
+        data = ((list(reversed(backend_2.jobs(limit)))[group]).result()).get_counts()
+        data = list(data)
+
+        for circ, result_noisy, i in zip(circ_set, data, range(size)):
             result_ideal = execute(circ, backend_1, basis_gates=basis_gates, shots=shots).result()
             items_ideal = list(result_ideal.get_counts().items())
-            items_noisy = list(result_noisy.get_counts().items())
+            items_noisy = list(result_noisy.items())
     
             for k in range(len(items_ideal)):
                 for j in range(num_qubits):
