@@ -1,0 +1,5 @@
+nohup: ignoring input
+/home/ykzhang/anaconda3/envs/qiskit/lib/python3.8/site-packages/qiskit/aqua/operators/operator_globals.py:48: DeprecationWarning: `from_label` is deprecated and will be removed no earlier than 3 months after the release date. Use Pauli(label) instead.
+  X = make_immutable(PrimitiveOp(Pauli.from_label('X')))
+ibmqfactory.load_account:WARNING:2021-04-27 17:58:08,675: Credentials are already in use. The existing account in the session will be replaced.
+done

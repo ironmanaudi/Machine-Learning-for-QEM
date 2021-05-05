@@ -20,14 +20,17 @@ from qiskit.circuit.random import random_circuit
 import torch
 from qiskit.quantum_info import random_clifford
 import pickle
+from operator import itemgetter
 # display(plot_histogram(result_ideal.get_counts()))
 
 
 def generate_data(size, shots, num_qubits, basis_gates, device, group=-1, limit=0, train=1):
-    data_ideal = torch.zeros((size, num_qubits, 2), dtype=torch.float64)
-    data_noisy = torch.zeros((size, num_qubits, 2), dtype=torch.float64)
     circ_set = []
-
+    val_ideals = []
+    val_noisys = []
+    idxs = []
+    sizes = []
+    
     backend_1 = Aer.get_backend('qasm_simulator')
     #IBMQ.save_account('83a95fc7efba05f250ed50ff6bdf1638541ebd4f9e46396f26c8dc12f15b2331ea24d9db4f59c30b6e397c2268e40ddc1dae4772091baa73d7e99c91e8d8c56b')
     provider = IBMQ.load_account()
@@ -48,30 +51,56 @@ def generate_data(size, shots, num_qubits, basis_gates, device, group=-1, limit=
         pickle.dump(circ_set, output)
         output.close()
     else:
+        limit = 66
         pkl_file = open('./circs/circ{n}tr{tr}bn{bn}.pkl'.format(n=num_qubits, tr=train, bn=group), 'rb')
         circ_set = pickle.load(pkl_file)
         pkl_file.close()
         
         data = ((list(reversed(backend_2.jobs(limit)))[group]).result()).get_counts()
-        data = list(data)
+        data = list(data) #make sure it is a list of dicts
 
         for circ, result_noisy, i in zip(circ_set, data, range(size)):
+            # print(result_noisy)
             result_ideal = execute(circ, backend_1, basis_gates=basis_gates, shots=shots).result()
-            items_ideal = list(result_ideal.get_counts().items())
-            items_noisy = list(result_noisy.items())
-    
-            for k in range(len(items_ideal)):
-                for j in range(num_qubits):
-                    if items_ideal[k][0][j] == '0': data_ideal[i,j,0] += items_ideal[k][1]
-                    else: data_ideal[i,j,1] += items_ideal[k][1]
-            for l in range(len(items_noisy)):
-                for m in range(num_qubits):
-                    if items_noisy[l][0][m] == '0': data_noisy[i,m,0] += items_noisy[l][1]
-                    else: data_noisy[i,m,1] += items_noisy[l][1]
-
-    data_ideal = data_ideal/shots
-    data_noisy = data_noisy/shots
-    return (data_ideal, data_noisy)
+            result_ideal = result_ideal.get_counts()
+            
+            #update dict of ideal and noisy
+            temp_ideal = dict.fromkeys(result_ideal, 0)
+            temp_noisy = dict.fromkeys(result_noisy, 0)
+            result_ideal.update(temp_noisy)
+            result_noisy.update(temp_ideal)
+            idx = sorted(result_ideal)
+            val_ideal = list(itemgetter(*idx)(result_ideal))
+            val_noisy = list(itemgetter(*idx)(result_noisy))
+            
+            #append noisy prob for each index
+            for k in range(len(idx)):
+                idx[k] = list(idx[k])
+                idx[k].append(val_noisy[k]/shots)
+                
+            sizes.append(len(idx))
+                
+            #convert idx from str to float
+            idx = np.array(idx)
+            idx = idx.astype(np.float64)
+            idx = torch.from_numpy(idx)
+            
+            #list of tensors
+            val_ideals.append(torch.Tensor(val_ideal, dtype=torch.float64)/shots)
+            val_noisys.append(torch.Tensor(val_noisy, dtype=torch.float64)/shots)
+            idxs.append(idx)
+        
+        #pad noisy and ideal
+        idxs = torch.nn.utils.rnn.pad_sequence(idxs, batch_first=True)
+        val_ideals = torch.nn.utils.rnn.pad_sequence(val_ideals, batch_first=True)
+        val_noisys = torch.nn.utils.rnn.pad_sequence(val_noisys, batch_first=True)
+        
+        #pack padded sequences
+        pack_idxs = torch.nn.utils.rnn.pack_padded_sequence(idxs, lengths=sizes, batch_first=True, enforce_sorted=False)
+        pack_ideals = torch.nn.utils.rnn.pack_padded_sequence(val_ideals, lengths=sizes, batch_first=True, enforce_sorted=False)
+        pack_noisys = torch.nn.utils.rnn.pack_padded_sequence(val_noisys, lengths=sizes, batch_first=True, enforce_sorted=False)
+        
+        return (val_ideals, pack_idxs, sizes)
 
 
 if __name__ == "__main__":
@@ -84,7 +113,7 @@ if __name__ == "__main__":
     prob_two = 0.01
     
     basis_gates = ['cx', 'id', 'rz', 'sx', 'x']
-    data_ideal, data_noisy = generate_data(size, shots, num_qubits, depth, max_operands, basis_gates)
+    val_ideals, pack_idxs, sizes = generate_data(size, shots, num_qubits, depth, max_operands, basis_gates)
     print('1', data_ideal)
     print('2', data_noisy)
 

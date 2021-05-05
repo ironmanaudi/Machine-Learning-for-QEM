@@ -18,13 +18,17 @@ from qiskit.visualization import plot_histogram
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.circuit.random import random_circuit
 import torch
-from qiskit.quantum_info import random_clifford
+from operator import itemgetter
 # display(plot_histogram(result_ideal.get_counts()))
 
 
 def generate_data(size, shots, num_qubits, depth, max_operands, noise_model, basis_gates):
-    data_ideal = torch.zeros((size, num_qubits, 2), dtype=torch.float64)
-    data_noisy = torch.zeros((size, num_qubits, 2), dtype=torch.float64)
+    # data_ideal = torch.zeros((size, num_qubits, 2), dtype=torch.float64)
+    # data_noisy = torch.zeros((size, num_qubits, 2), dtype=torch.float64)
+    val_ideals = []
+    val_noisys = []
+    idxs = []
+    sizes = []
 
     backend = Aer.get_backend('qasm_simulator')
 
@@ -32,23 +36,55 @@ def generate_data(size, shots, num_qubits, depth, max_operands, noise_model, bas
         circ = random_circuit(num_qubits, depth, max_operands, measure=True)
 
         result_ideal = execute(circ, backend ,basis_gates=basis_gates, shots=shots).result()
-        items_ideal = list(result_ideal.get_counts().items())
+        result_ideal = result_ideal.get_counts()
         result_noisy = execute(circ,backend,basis_gates=basis_gates,noise_model=noise_model,shots=shots).result()
-        items_noisy = list(result_noisy.get_counts().items())
+        result_noisy = result_noisy.get_counts()
 
-        for k in range(len(items_ideal)):
-            for j in range(num_qubits):
-                if items_ideal[k][0][j] == '0': data_ideal[i,j,0] += items_ideal[k][1]
-                else: data_ideal[i,j,1] += items_ideal[k][1]
-        for l in range(len(items_noisy)):
-            for m in range(num_qubits):
-                if items_noisy[l][0][m] == '0': data_noisy[i,m,0] += items_noisy[l][1]
-                else: data_noisy[i,m,1] += items_noisy[l][1]
-
-    data_ideal = data_ideal/shots
-    data_noisy = data_noisy/shots
-
-    return (data_ideal, data_noisy)
+        # for k in range(len(items_ideal)):
+        #     for j in range(num_qubits):
+        #         if items_ideal[k][0][j] == '0': data_ideal[i,j,0] += items_ideal[k][1]
+        #         else: data_ideal[i,j,1] += items_ideal[k][1]
+        # for l in range(len(items_noisy)):
+        #     for m in range(num_qubits):
+        #         if items_noisy[l][0][m] == '0': data_noisy[i,m,0] += items_noisy[l][1]
+        #         else: data_noisy[i,m,1] += items_noisy[l][1]
+        
+        #update dict of ideal and noisy
+        temp_ideal = dict.fromkeys(result_ideal, 0)
+        temp_noisy = dict.fromkeys(result_noisy, 0)
+        result_ideal.update(temp_noisy)
+        result_noisy.update(temp_ideal)
+        idx = sorted(result_ideal)
+        val_ideal = list(itemgetter(*idx)(result_ideal))
+        val_noisy = list(itemgetter(*idx)(result_noisy))
+        #append noisy prob for each index
+        for k in range(len(idx)):
+            idx[k] = list(idx[k])
+            idx[k].append(val_noisy[k]/shots)
+            
+        sizes.append(len(idx))
+                
+        #convert idx from str to float
+        idx = np.array(idx)
+        idx = idx.astype(np.float64)
+        idx = torch.from_numpy(idx)
+        
+        #list of tensors
+        val_ideals.append(torch.Tensor(val_ideal, dtype=torch.float64)/shots)
+        val_noisys.append(torch.Tensor(val_noisy, dtype=torch.float64)/shots)
+        idxs.append(idx)
+    
+    #pad noisy and ideal
+    idxs = torch.nn.utils.rnn.pad_sequence(idxs, batch_first=True)
+    val_ideals = torch.nn.utils.rnn.pad_sequence(val_ideals, batch_first=True)
+    val_noisys = torch.nn.utils.rnn.pad_sequence(val_noisys, batch_first=True)
+    
+    #pack padded sequences
+    pack_idxs = torch.nn.utils.rnn.pack_padded_sequence(idxs, lengths=sizes, batch_first=True, enforce_sorted=False)
+    pack_ideals = torch.nn.utils.rnn.pack_padded_sequence(val_ideals, lengths=sizes, batch_first=True, enforce_sorted=False)
+    pack_noisys = torch.nn.utils.rnn.pack_padded_sequence(val_noisys, lengths=sizes, batch_first=True, enforce_sorted=False)
+    
+    return (val_ideals, pack_idxs, sizes)
 
 
 def noisy_model(prob_one, prob_two):
